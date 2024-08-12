@@ -1,0 +1,15 @@
+{
+  "name": "wallet-viewer",
+  "version": "0.1.0",
+  "type": "module",
+  "repository": "https://github.com/foldingcash/wallet-viewer.git",
+  "author": "FoldingCash LLC",
+  "license": "MIT",
+  "scripts": {
+    "start": "node ./index.js"
+  },
+  "dependencies": {
+    "cashscript": "0.10.0-next.5",
+    "prompt-sync": "^4.2.0"
+  }
+}
