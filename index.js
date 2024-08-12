@@ -23,8 +23,13 @@ async function showUTXOs(){
 async function main() {
     let exit = false;
     do {
-        const menu = 'Menu:\n\t1: Show UTXOs\n\t2: Exit\n\nChoose Selection: ';
-        const response = promptInt(menu); // weird behavior
+        const menu = `Menu:
+    1: Show UTXOs
+    2: Exit
+    
+Choose Selection: `;
+        console.log(menu);
+        const response = promptInt();
         console.log('response', response);
 
         switch(response) {
