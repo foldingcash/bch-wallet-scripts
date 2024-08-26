@@ -1,1 +1,1 @@
-# wallet-viewer
+# bch-wallet-scripts
