@@ -2,7 +2,7 @@ import { ElectrumNetworkProvider, TransactionBuilder } from 'cashscript';
 import {
     instantiateSha256,
     utf8ToBin
-  } from '@bitauth/libauth';
+} from '@bitauth/libauth';
 
 import getWallet from './getWallet.js';
 import { promptInt, prompt, promptBool } from './prompt.js';
@@ -10,6 +10,8 @@ import { promptInt, prompt, promptBool } from './prompt.js';
 import config from './config.json' assert { type: 'json' };
 
 const Dust = 1000n;
+
+const { address, signatureTemplate } = await getWallet();
 
 const provider = new ElectrumNetworkProvider(config.Network);
 const sha256 = await instantiateSha256();
@@ -39,9 +41,8 @@ async function sendTransaction(buildFunc) {
 }
 
 async function showUTXOs() {
-    const { address: walletAddress } = await getWallet();
-    const address = prompt(`Address: ${walletAddress}`, walletAddress);
-    const inputs = await provider.getUtxos(address);
+    const inputAddress = prompt(`Address: ${address}`, address);
+    const inputs = await provider.getUtxos(inputAddress);
 
     console.log(`Found '${inputs.length}' UTXOs`);
 
@@ -51,7 +52,6 @@ async function showUTXOs() {
 }
 
 async function sendAuthHead() {
-    const { address } = await getWallet();
     const inputs = await provider.getUtxos(address);
 
     console.log(`Found '${inputs.length}' UTXOs`);
@@ -67,8 +67,9 @@ async function sendAuthHead() {
 
     const input = inputs[inputIndex];
 
-    if (input.satoshis <= Dust * 4) {
-        throw Error('Need more than 4000 satoshis to preform this action.');
+    if (input.satoshis <= Dust * 4n) {
+        console.log('Need more than 4000 satoshis to preform this action.');
+        return;
     }
 
     const sendAuthHeadTo = prompt('Send auth head to: ');
@@ -93,7 +94,6 @@ async function sendAuthHead() {
 }
 
 async function updateTokenBcmr() {
-    const { address } = await getWallet();
     const inputs = await provider.getUtxos(address);
 
     console.log(`Found '${inputs.length}' UTXOs`);
@@ -109,8 +109,9 @@ async function updateTokenBcmr() {
 
     const input = inputs[inputIndex];
 
-    if (input.satoshis <= Dust * 4) {
-        throw Error('Need more than 4000 satoshis to preform this action.');
+    if (input.satoshis <= Dust * 4n) {
+        console.log('Need more than 4000 satoshis to preform this action.');
+        return;
     }
 
     const sendAuthHeadTo = prompt('Send auth head to: ');
@@ -119,7 +120,8 @@ async function updateTokenBcmr() {
     const serverResponse = await fetch(new URL(bcmrUrl));
 
     if (serverResponse.status != 200) {
-        throw Error('Unable to continue, there was a problem getting the bcmr meta data', serverResponse);
+        console.log('Unable to continue, there was a problem getting the bcmr meta data', serverResponse);
+        return;
     }
 
     const bcmrMeta = await serverResponse.text();
@@ -133,11 +135,88 @@ async function updateTokenBcmr() {
                 to: sendAuthHeadTo,
                 amount: Dust,
             })
-            addOpReturnOutput(['BCMR', bcmrHash, bcmrUrl])
+        addOpReturnOutput(['BCMR', bcmrHash, bcmrUrl])
             .addOutput({
                 to: address,
                 amount: input.satoshis - Dust - fee,
                 token: input.token,
+            });
+        return builder;
+    }
+
+    await sendTransaction(build);
+}
+
+async function combineInputs() {
+    const inputs = await provider.getUtxos(address);
+
+    console.log(`Found '${inputs.length}' UTXOs`);
+
+    if (inputs.length < 2) {
+        console.log('Need at least two inputs to combine');
+        return;
+    }
+
+    inputs.forEach((i, index) => {
+        console.log(`Input (${index}): `, i);
+    });
+
+    let firstInputIndex;
+    do {
+        firstInputIndex = promptInt('First input: ', 0);
+    } while (firstInputIndex >= inputs.length);
+
+    inputs.forEach((i, index) => {
+        if (firstInputIndex === index) {
+            return;
+        }
+        console.log(`Input (${index}): `, i);
+    });
+
+    let secondInputIndex;
+    do {
+        secondInputIndex = promptInt('Second input: ', 0);
+    } while (secondInputIndex >= inputs.length);
+
+    const firstInput = inputs[firstInputIndex];
+    const secondInput = inputs[secondInputIndex];
+
+    const totalSatoshis = firstInput.satoshis + secondInput.satoshis;
+
+    if (totalSatoshis <= Dust * 4n) {
+        console.log('Need more than 4000 satoshis to preform this action.');
+        return;
+    }
+
+    if (!!firstInput.token && !!secondInput.token) {
+        if (firstInput.token?.category !== secondInput.token?.category) {
+            console.log('Unable to combine these inputs as you risk losing your tokens, unable to combine different token types');
+            return;
+        }
+    }
+
+    if (!!firstInput.token?.nft || !!secondInput.token?.nft) {
+        console.log('Unable to combine these inputs as you risk losing your nfts, unable to combine nfts');
+        return;
+    }
+
+    let outputToken;
+    if (!!firstInput.token || !!secondInput.token) {
+        outputToken = {
+            amount: (firstInput.token?.amount ?? 0n) + (secondInput.token?.amount ?? 0n),
+            category: firstInput.token?.category ?? secondInput.token.category,
+        };
+    }
+
+    const build = (fee) => {
+        const builder = new TransactionBuilder({ provider });
+        builder
+            .addInput(firstInput, signatureTemplate.unlockP2PKH())
+            .addInput(secondInput, signatureTemplate.unlockP2PKH())
+            .addOutput({
+                to: address,
+                amount: totalSatoshis - fee,
+                token: outputToken
             });
         return builder;
     }
@@ -153,6 +232,7 @@ async function main() {
     1: Show UTXOs
     2: Send Auth Head
     3: Update Token's BCMR
+    4: Combine Inputs
     
 Choose Selection: `;
         console.log(menu);
@@ -171,6 +251,10 @@ Choose Selection: `;
             case 3:
                 console.log('updating a token BCMR');
                 await updateTokenBcmr();
+                break;
+            case 4:
+                console.log('combining inputs');
+                await combineInputs();
                 break;
             case 0:
                 exit = true;

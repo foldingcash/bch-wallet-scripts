@@ -9,7 +9,6 @@
     "start": "node ./index.js"
   },
   "dependencies": {
-    "@bitauth/libauth": "^3.0.0",
     "cashscript": "0.10.0-next.5",
     "prompt-sync": "^4.2.0"
   }
