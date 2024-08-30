@@ -1,7 +1,16 @@
 import { ElectrumNetworkProvider, TransactionBuilder } from 'cashscript';
 import {
     instantiateSha256,
-    utf8ToBin
+    utf8ToBin,
+    binToUtf8,
+    // binToHex,
+    // binToBase58,
+    // binToBase64,
+    // binToBinString,
+    // binToBigIntUint256BE,
+    // binToBech32Padded,
+    // binToFixedLength,
+    binToHex,
 } from '@bitauth/libauth';
 
 import getWallet from './getWallet.js';
@@ -109,13 +118,27 @@ async function updateTokenBcmr() {
 
     const input = inputs[inputIndex];
 
-    if (input.satoshis <= Dust * 4n) {
-        console.log('Need more than 4000 satoshis to preform this action.');
+    if (input.satoshis <= Dust * 2n) {
+        console.log('Need more than 2000 satoshis to perform this action.');
         return;
     }
 
-    const sendAuthHeadTo = prompt('Send auth head to: ');
+    if (!!input.token) {
+        console.log('Token support is not available for this command');
+        return;
+    }
+
     const bcmrUrl = prompt('BCMR url: ');
+
+    if (!bcmrUrl.startsWith('https://')) {
+        console.log('Only HTTPS is supported....the url should start with "https://"');
+        return;
+    }
+
+    if (bcmrUrl.endsWith('/')) {
+        console.log('Url not expected to end in "/"...try again or enhance this script to support this url');
+        return;
+    }
 
     const serverResponse = await fetch(new URL(bcmrUrl));
 
@@ -127,20 +150,24 @@ async function updateTokenBcmr() {
     const bcmrMeta = await serverResponse.text();
     const bcmrHash = sha256.hash(utf8ToBin(bcmrMeta));
 
+    console.log('yes', bcmrHash);
+
+    const opReturn = {
+        bcmrHash: `0x${binToHex(bcmrHash)}`,
+        bcmrUrl: bcmrUrl.replace('https://', '').trimEnd(),
+    };
+
+    console.log('testing', opReturn);
+
     const build = (fee) => {
         const builder = new TransactionBuilder({ provider });
         builder
             .addInput(input, signatureTemplate.unlockP2PKH())
             .addOutput({
-                to: sendAuthHeadTo,
-                amount: Dust,
-            })
-        addOpReturnOutput(['BCMR', bcmrHash, bcmrUrl])
-            .addOutput({
                 to: address,
-                amount: input.satoshis - Dust - fee,
-                token: input.token,
-            });
+                amount: input.satoshis - fee,
+            })
+            .addOpReturnOutput(['BCMR', opReturn.bcmrHash, opReturn.bcmrUrl]);
         return builder;
     }
 
