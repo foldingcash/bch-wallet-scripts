@@ -2,14 +2,6 @@ import { ElectrumNetworkProvider, TransactionBuilder } from 'cashscript';
 import {
     instantiateSha256,
     utf8ToBin,
-    binToUtf8,
-    // binToHex,
-    // binToBase58,
-    // binToBase64,
-    // binToBinString,
-    // binToBigIntUint256BE,
-    // binToBech32Padded,
-    // binToFixedLength,
     binToHex,
 } from '@bitauth/libauth';
 
@@ -150,14 +142,10 @@ async function updateTokenBcmr() {
     const bcmrMeta = await serverResponse.text();
     const bcmrHash = sha256.hash(utf8ToBin(bcmrMeta));
 
-    console.log('yes', bcmrHash);
-
     const opReturn = {
         bcmrHash: `0x${binToHex(bcmrHash)}`,
         bcmrUrl: bcmrUrl.replace('https://', '').trimEnd(),
     };
-
-    console.log('testing', opReturn);
 
     const build = (fee) => {
         const builder = new TransactionBuilder({ provider });
