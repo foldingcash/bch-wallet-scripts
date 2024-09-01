@@ -24,5 +24,5 @@ import {
     const pubKeyHex = binToHex(pubKeyBin);
     const pubKeyHash = ripemd160.hash(sha256.hash(pubKeyBin));
     const address = encodeCashAddress(config.Network === Network.MAINNET ? 'bitcoincash' : 'bchtest', 'p2pkhWithTokens', pubKeyHash);
-    return { privateKey, signatureTemplate, pubKeyBin, pubKeyHex, pubKeyHash, address };
+    return { privateKey, signatureTemplate, pubKeyBin, pubKeyHex, pubKeyHash, address, decodedWif };
   }

@@ -3,6 +3,7 @@ import {
     instantiateSha256,
     utf8ToBin,
     binToHex,
+    encodePrivateKeyWif,
 } from '@bitauth/libauth';
 
 import getWallet from './getWallet.js';
@@ -239,6 +240,16 @@ async function combineInputs() {
     await sendTransaction(build);
 }
 
+async function encodePrivateKey() {
+    const { decodedWif } = await getWallet();
+    let network;
+    do {
+        network = prompt('Network: ');
+    } while(network !== 'mainnet' && network !== 'chipnet' && network !== 'testnet');
+    const wif = encodePrivateKeyWif(decodedWif.privateKey, network);
+    console.log(`${network} encoded WIF`, wif);
+}
+
 async function main() {
     let exit = false;
     do {
@@ -248,6 +259,7 @@ async function main() {
     2: Send Auth Head
     3: Update Token's BCMR
     4: Combine Inputs
+    5: Encode Private Key To WIF
     
 Choose Selection: `;
         console.log(menu);
@@ -270,6 +282,10 @@ Choose Selection: `;
             case 4:
                 console.log('combining inputs');
                 await combineInputs();
+                break;
+            case 5:
+                console.log('encoding private key to WIF')
+                await encodePrivateKey();
                 break;
             case 0:
                 exit = true;
