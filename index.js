@@ -256,7 +256,7 @@ async function main() {
         const menu = `Menu:
     0: Exit
     1: Show UTXOs
-    2: Send Auth Head
+    2: Send UTXO
     3: Update Token's BCMR
     4: Combine Inputs
     5: Encode Private Key To WIF
