@@ -53,7 +53,7 @@ async function showUTXOs() {
     });
 }
 
-async function sendAuthHead() {
+async function sendUTXO() {
     const inputs = await provider.getUtxos(address);
 
     console.log(`Found '${inputs.length}' UTXOs`);
@@ -272,8 +272,8 @@ Choose Selection: `;
                 await showUTXOs();
                 break;
             case 2:
-                console.log('sending auth head to a new address');
-                await sendAuthHead();
+                console.log('sending UTXO to a new address');
+                await sendUTXO();
                 break;
             case 3:
                 console.log('updating a token BCMR');
