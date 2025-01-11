@@ -53,7 +53,7 @@ async function showUTXOs() {
     });
 }
 
-async function sendUTXO() {
+async function sendAuthHead() {
     const inputs = await provider.getUtxos(address);
 
     console.log(`Found '${inputs.length}' UTXOs`);
@@ -88,6 +88,43 @@ async function sendUTXO() {
                 to: address,
                 amount: input.satoshis - Dust - fee,
                 token: input.token,
+            });
+        return builder;
+    }
+
+    await sendTransaction(build);
+}
+
+async function sendUTXO() {
+    const inputs = await provider.getUtxos(address);
+
+    console.log(`Found '${inputs.length}' UTXOs`);
+
+    inputs.forEach((i, index) => {
+        console.log(`Input (${index}): `, i);
+    });
+
+    let inputIndex;
+    do {
+        inputIndex = promptInt('Which input: ', 0);
+    } while (inputIndex >= inputs.length);
+
+    const input = inputs[inputIndex];
+
+    if (input.satoshis <= Dust * 4n) {
+        console.log('Need more than 4000 satoshis to perform this action.');
+        return;
+    }
+
+    const sendTo = prompt('Send UTXO to: ');
+
+    const build = (fee) => {
+        const builder = new TransactionBuilder({ provider });
+        builder
+            .addInput(input, signatureTemplate.unlockP2PKH())
+            .addOutput({
+                to: sendTo,
+                amount: input.satoshis - fee,
             });
         return builder;
     }
@@ -253,13 +290,15 @@ async function encodePrivateKey() {
 async function main() {
     let exit = false;
     do {
-        const menu = `Menu:
+        const menu =
+`Menu:
     0: Exit
     1: Show UTXOs
     2: Send UTXO
-    3: Update Token's BCMR
-    4: Combine Inputs
-    5: Encode Private Key To WIF
+    3: Send Auth Head
+    4: Update Token's BCMR
+    5: Combine Inputs
+    6: Encode Private Key To WIF
     
 Choose Selection: `;
         console.log(menu);
@@ -272,18 +311,22 @@ Choose Selection: `;
                 await showUTXOs();
                 break;
             case 2:
-                console.log('sending UTXO to a new address');
+                console.log('sending a single UTXO to a new address');
                 await sendUTXO();
                 break;
             case 3:
+                console.log('sending auth head to a new address');
+                await sendAuthHead();
+                break;
+            case 4:
                 console.log('updating a token BCMR');
                 await updateTokenBcmr();
                 break;
-            case 4:
+            case 5:
                 console.log('combining inputs');
                 await combineInputs();
                 break;
-            case 5:
+            case 6:
                 console.log('encoding private key to WIF')
                 await encodePrivateKey();
                 break;
