@@ -1,9 +1,13 @@
 import { ElectrumNetworkProvider, TransactionBuilder } from 'cashscript';
 import {
     instantiateSha256,
+
     utf8ToBin,
     binToHex,
     encodePrivateKeyWif,
+    encodeCashAddress,
+    decodeCashAddress,
+    instantiateRipemd160,
 } from '@bitauth/libauth';
 
 import getWallet from './getWallet.js';
@@ -17,6 +21,7 @@ const { address, signatureTemplate } = await getWallet();
 
 const provider = new ElectrumNetworkProvider(config.Network);
 const sha256 = await instantiateSha256();
+const ripemd160 = await instantiateRipemd160();
 
 async function sendTransaction(buildFunc) {
     let transaction = buildFunc(Dust * 2n);
@@ -287,6 +292,19 @@ async function encodePrivateKey() {
     console.log(`${network} encoded WIF`, wif);
 }
 
+async function encodeTokenSupportAddress() {
+    let address;
+    do {
+        address = prompt('Address: ');
+    } while(!address);
+    const pubKeyHash = decodeCashAddress(address).payload;
+    console.log(encodeCashAddress('bchtest', 'p2pkhWithTokens', pubKeyHash));
+
+
+        // const address = encodeCashAddress(config.Network === Network.MAINNET ? 'bitcoincash' : 'bchtest', 'p2pkhWithTokens', pubKeyHash);
+
+}
+
 async function main() {
     let exit = false;
     do {
@@ -299,6 +317,7 @@ async function main() {
     4: Update Token's BCMR
     5: Combine Inputs
     6: Encode Private Key To WIF
+    7: Get Address Token Enabled Address
     
 Choose Selection: `;
         console.log(menu);
@@ -329,6 +348,10 @@ Choose Selection: `;
             case 6:
                 console.log('encoding private key to WIF')
                 await encodePrivateKey();
+                break;
+            case 7:
+                console.log('encoding address to token support');
+                await encodeTokenSupportAddress();
                 break;
             case 0:
                 exit = true;
