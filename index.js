@@ -1,7 +1,6 @@
 import { ElectrumNetworkProvider, TransactionBuilder } from 'cashscript';
 import {
     instantiateSha256,
-
     utf8ToBin,
     binToHex,
     encodePrivateKeyWif,
@@ -305,6 +304,16 @@ async function encodeTokenSupportAddress() {
 
 }
 
+async function broadcastTx() {
+    let txHex;
+    do {
+        txHex = prompt('TX Hex: ');
+    } while(!txHex);
+
+    const response = await provider.sendRawTransaction(txHex);
+    console.log('Broadcast Response', response);
+}
+
 async function main() {
     let exit = false;
     do {
@@ -318,6 +327,7 @@ async function main() {
     5: Combine Inputs
     6: Encode Private Key To WIF
     7: Get Address Token Enabled Address
+    8: Broadcast TX
     
 Choose Selection: `;
         console.log(menu);
@@ -353,6 +363,9 @@ Choose Selection: `;
                 console.log('encoding address to token support');
                 await encodeTokenSupportAddress();
                 break;
+            case 8:
+                console.log('broadcast a tx');
+                await broadcastTx();
             case 0:
                 exit = true;
                 break;
