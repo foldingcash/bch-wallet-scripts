@@ -184,10 +184,13 @@ async function updateTokenBcmr() {
     const bcmrMeta = await serverResponse.text();
     const bcmrHash = sha256.hash(utf8ToBin(bcmrMeta));
 
-    const opReturn = {
-        bcmrHash: `0x${binToHex(bcmrHash)}`,
-        bcmrUrl: bcmrUrl.replace('https://', '').trimEnd(),
-    };
+    const opReturn = [
+        'BCMR',
+        `0x${binToHex(bcmrHash)}`,
+        bcmrUrl.trimEnd(),
+    ];
+    
+    console.log('Tx OP_RETURN:', opReturn);
 
     const build = (fee) => {
         const builder = new TransactionBuilder({ provider });
@@ -197,9 +200,10 @@ async function updateTokenBcmr() {
                 to: address,
                 amount: input.satoshis - fee,
             })
-            .addOpReturnOutput(['BCMR', opReturn.bcmrHash, opReturn.bcmrUrl]);
+            .addOpReturnOutput(opReturn);
         return builder;
     }
+
 
     await sendTransaction(build);
 }
